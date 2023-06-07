@@ -52,6 +52,8 @@ namespace WindowsFormsApp1
             textBox7.Text = "";
             comboBoxKnigaID.Visible=false;
             comboBoxPotrebitelID.Visible=false;
+            checkBox1.Checked=false;
+            checkBox1.Visible=false;
         }
         private void ComboBoxNaglasqne()
         {
@@ -73,7 +75,11 @@ namespace WindowsFormsApp1
             con.Open();
             if (con.State == System.Data.ConnectionState.Open)
             {
-                string command = "SELECT Ime, KnigaID FROM Knigi";
+                string command = "SELECT Knigi.Ime, Knigi.KnigaID " +
+                                "FROM Knigi " +
+                                "LEFT JOIN Zaemaniq ON Knigi.KnigaID = Zaemaniq.KnigaID " +
+                                "WHERE Zaemaniq.KnigaID IS NULL OR Zaemaniq.Zaeta = 0";
+
                 SqlCommand sqlCommand = new SqlCommand(command, con);
                 SqlDataReader reader = sqlCommand.ExecuteReader();
                 while (reader.Read())
@@ -93,26 +99,20 @@ namespace WindowsFormsApp1
             con.Open();
             if (con.State == System.Data.ConnectionState.Open)
             {
-                string command = "SELECT Count(PotrebitelID) FROM Potrebitel";
+                string command = "SELECT PotrebitelID, Ime, Familia FROM Potrebitel";
                 SqlCommand sqlCommand = new SqlCommand(command, con);
-                int numberOfPotrebiteli = Convert.ToInt32(sqlCommand.ExecuteScalar());
-                for (int i = 1; i <= numberOfPotrebiteli; i++)
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+
+                while (reader.Read())
                 {
-                    command = "SELECT Ime, Familia, PotrebitelID FROM Potrebitel WHERE PotrebitelID =" + i;
-                    sqlCommand = new SqlCommand(command, con);
-                    SqlDataReader reader = sqlCommand.ExecuteReader();
-                    if (reader.Read())
-                    {
-                        string ID = reader["PotrebitelID"].ToString();
-                        string ime = reader["Ime"].ToString();
-                        ime = ime.TrimEnd();
-                        string familia = reader["Familia"].ToString();
-                        familia = familia.TrimStart();
-                        string fullName = ID + ": " + ime + " " + familia;
-                        comboBoxPotrebitelID.Items.Add(fullName.TrimEnd());
-                    }
-                    reader.Close();
+                    string ID = reader["PotrebitelID"].ToString();
+                    string ime = reader["Ime"].ToString().TrimEnd();
+                    string familia = reader["Familia"].ToString().TrimStart();
+                    string fullName = ID + ": " + ime + " " + familia;
+                    comboBoxPotrebitelID.Items.Add(fullName);
                 }
+
+                reader.Close();
             }
             con.Close();
         }
@@ -141,6 +141,7 @@ namespace WindowsFormsApp1
                     textBox3.Visible = true;
                     textBox4.Visible = true;
                     textBox5.Visible = true;
+                    checkBox1.Visible = true;
                     ComboBoxNaglasqne();
                     break;
                 case 1:
@@ -201,22 +202,59 @@ namespace WindowsFormsApp1
                     break;
             }
         }
+        private bool ProverkaZaZaetaKniga(int knigaID)
+        {
+            bool alreadyTaken = false;
+
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string command = "SELECT COUNT(*) FROM Zaemaniq WHERE KnigaID = "+knigaID+" AND Zaeta = 1";
+                SqlCommand sqlCommand = new SqlCommand(command, con);
+
+                int count = Convert.ToInt32(sqlCommand.ExecuteScalar());
+                if (count > 0)
+                {
+                    alreadyTaken = true;
+                    MessageBox.Show("Книгата вече е заета");
+                }
+                con.Close();
+            }
+
+            return alreadyTaken;
+        }
+        private bool ProverkaZaPodredbaNaDatite(string NachalnaDataS, string KrainaDataS)
+        {
+            DateTime NachalnaData = DateTime.Parse(NachalnaDataS);
+            DateTime KrainaData = DateTime.Parse(KrainaDataS);
+            bool result=false; 
+            if(NachalnaData<KrainaData)
+            {
+                result = true;
+            }
+            else
+            {
+                MessageBox.Show("Началната дата е преди крайната дата, променете датите");
+            }
+            return result;
+        }
         private void DobavqneNaZaemane()
         {
             if (comboBoxKnigaID.SelectedItem != null&&comboBoxPotrebitelID.SelectedItem!=null)
             {
                 string KnigaID = comboBoxKnigaID.SelectedItem.ToString();
                 string PotrebitelID = comboBoxPotrebitelID.SelectedItem.ToString();
-                if (KnigaID != "" && PotrebitelID != "" && textBox1.Text != "" && textBox2.Text != "")
+                int indexK = KnigaID.IndexOf(":");
+                int indexP = PotrebitelID.IndexOf(":");
+                KnigaID = KnigaID.Substring(0, indexK);
+                PotrebitelID = PotrebitelID.Substring(0, indexP);
+                if (KnigaID != "" && PotrebitelID != "" && !ProverkaZaZaetaKniga(Convert.ToInt32(KnigaID))
+                    && textBox1.Text != "" && textBox2.Text != ""&& ProverkaZaPodredbaNaDatite(textBox1.Text,textBox2.Text))
                 {
-                    int indexK = KnigaID.IndexOf(":");
-                    int indexP = PotrebitelID.IndexOf(":");
-                    KnigaID = KnigaID.Substring(0, indexK);
-                    PotrebitelID = PotrebitelID.Substring(0, indexP);
                     SqlConnection con = new SqlConnection(connectionString);
                     con.Open();
-                    string INS = "INSERT INTO Zaemaniq(NachalnaData,KrainaData,KnigaID,KlientID,Shteti) VALUES" +
-                         "('" + textBox1.Text + "','" + textBox2.Text + "'," + KnigaID + "," + PotrebitelID + "," + "'" + textBox5.Text + "')";
+                    string INS = "INSERT INTO Zaemaniq(NachalnaData,KrainaData,KnigaID,KlientID,Shteti,Zaeta) VALUES" +
+                         "('" + textBox1.Text + "','" + textBox2.Text + "'," + KnigaID + "," + PotrebitelID + ",'" + textBox5.Text + "',"+Convert.ToInt32(checkBox1.Checked)+")";
                     SqlCommand command = new SqlCommand(INS, con);
                     int rowsAfected = command.ExecuteNonQuery();
                     if (rowsAfected == 1) MessageBox.Show("Успешно Добавяне");

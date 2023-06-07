@@ -50,6 +50,7 @@
             this.dateTimePicker3 = new System.Windows.Forms.DateTimePicker();
             this.comboBoxKnigaID = new System.Windows.Forms.ComboBox();
             this.comboBoxPotrebitelID = new System.Windows.Forms.ComboBox();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // comboBoxIzbor
@@ -242,11 +243,22 @@
             this.comboBoxPotrebitelID.Size = new System.Drawing.Size(199, 24);
             this.comboBoxPotrebitelID.TabIndex = 21;
             // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(212, 293);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(69, 20);
+            this.checkBox1.TabIndex = 22;
+            this.checkBox1.Text = "Заета";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            // 
             // FormDobavqne
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(506, 488);
+            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.comboBoxPotrebitelID);
             this.Controls.Add(this.comboBoxKnigaID);
             this.Controls.Add(this.dateTimePicker3);
@@ -300,5 +312,6 @@
         private System.Windows.Forms.DateTimePicker dateTimePicker3;
         private System.Windows.Forms.ComboBox comboBoxKnigaID;
         private System.Windows.Forms.ComboBox comboBoxPotrebitelID;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }

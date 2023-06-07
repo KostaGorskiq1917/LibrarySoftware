@@ -191,6 +191,29 @@ namespace WindowsFormsApp1
                     listBoxInfo.Items.Add("Вид на абонамент: " + vidAbonament);
                     listBoxInfo.Items.Add("Тел. номер: 0" + phoneNumber);
                     listBoxInfo.Items.Add("ЕГН: " + EGN);
+                    listBoxInfo.Items.Add("------------------------------------------------------------------------");
+                }
+                reader.Close();
+
+                command = "SELECT Zaemaniq.PoruchkaID, Zaemaniq.NachalnaData, Knigi.KnigaID, Knigi.Ime AS KnigaIme "+
+                    "FROM Zaemaniq "+
+                    "INNER JOIN Knigi ON Zaemaniq.KnigaID = Knigi.KnigaID "+
+                    "WHERE Zaemaniq.KlientID = "+PotrebitelID+" AND Zaemaniq.Zaeta = 1";
+                sqlCommand = new SqlCommand(command, con);
+                reader = sqlCommand.ExecuteReader();
+                while (reader.Read())
+                {
+                    string poruchkaID = reader["PoruchkaID"].ToString();
+                    DateTime nachalnaData = (DateTime)reader["NachalnaData"];
+                    string knigaID = reader["KnigaID"].ToString();
+                    string knigaIme = reader["KnigaIme"].ToString();
+
+                    listBoxInfo.Items.Add("ЗАЕМАНЕ:");
+                    listBoxInfo.Items.Add("Поръчка ID: " + poruchkaID);
+                    listBoxInfo.Items.Add("Начална дата: " + nachalnaData.ToString("dd-MM-yyyy"));
+                    listBoxInfo.Items.Add("Книга ID: " + knigaID);
+                    listBoxInfo.Items.Add("Книга: " + knigaIme);
+                    listBoxInfo.Items.Add("------------------------------------------------------------------------");
                 }
                 reader.Close();
             }
@@ -208,7 +231,7 @@ namespace WindowsFormsApp1
                 string command = "SELECT * FROM Knigi WHERE KnigaID =" + KnigaID;
                 SqlCommand sqlCommand = new SqlCommand(command, con);
                 SqlDataReader reader = sqlCommand.ExecuteReader();
-                while (reader.Read())
+                if (reader.Read())
                 {
                     long ID = Convert.ToInt64(reader["KnigaID"]);
                     string ime = reader["Ime"].ToString();
@@ -216,14 +239,54 @@ namespace WindowsFormsApp1
                     string janr = reader["Janr"].ToString();
                     string cena = reader["Cena"].ToString();
                     listBoxInfo.Items.Add("ID: " + ID.ToString());
-                    listBoxInfo.Items.Add("Име: " + ime);
+                    listBoxInfo.Items.Add("Заглавие: " + ime);
                     listBoxInfo.Items.Add("Автор: " + avtor);
                     listBoxInfo.Items.Add("Жанр: " + janr);
                     listBoxInfo.Items.Add("Цена: " + cena);
+
+                    reader.Close();
+                    string checkCommand = "SELECT * FROM Zaemaniq WHERE KnigaID = " + KnigaID + " AND Zaeta = 1";
+                    SqlCommand checkSqlCommand = new SqlCommand(checkCommand, con);
+                    SqlDataReader checkReader = checkSqlCommand.ExecuteReader();
+                    if (checkReader.HasRows)
+                    {
+                        listBoxInfo.Items.Add("Заета от следните читатели:");
+                        while (checkReader.Read())
+                        {
+                            string klientID = checkReader["KlientID"].ToString();
+                            string klientName = GetKlientNameByID(klientID);
+                            listBoxInfo.Items.Add("ЧитателID: " + klientID);
+                            listBoxInfo.Items.Add("Читател: " + klientName);
+                        }
+                    }
+                    checkReader.Close();
                 }
                 reader.Close();
             }
             con.Close();
+        }
+
+
+        private string GetKlientNameByID(string klientID)
+        {
+            string name = string.Empty;
+            SqlConnection con = new SqlConnection(connectionString);
+            con.Open();
+            if (con.State == System.Data.ConnectionState.Open)
+            {
+                string command = "SELECT Ime, Familia FROM Potrebitel WHERE PotrebitelID = " + klientID;
+                SqlCommand sqlCommand = new SqlCommand(command, con);
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+                if (reader.Read())
+                {
+                    string ime = reader["Ime"].ToString();
+                    string familia = reader["Familia"].ToString();
+                    name = ime.TrimEnd() + " " + familia.Trim();
+                }
+                reader.Close();
+            }
+            con.Close();
+            return name;
         }
         private void listBoxInfoFillAvtor(string selectedAvtor)
         {
@@ -239,7 +302,7 @@ namespace WindowsFormsApp1
                 {
                     long ID = Convert.ToInt64(reader["KnigaID"]);
                     string ime = reader["Ime"].ToString();
-                    listBoxInfo.Items.Add("ID: " + ID.ToString() + " Ime: " + ime);
+                    listBoxInfo.Items.Add("ID: " + ID.ToString() + " Заглавие: " + ime);
                 }
                 reader.Close();
             }
@@ -256,12 +319,12 @@ namespace WindowsFormsApp1
             if (con.State == System.Data.ConnectionState.Open)
             {
                 string command = "SELECT Zaemaniq.PoruchkaID, Zaemaniq.NachalnaData, Zaemaniq.KrainaData, " +
-                                 "Potrebitel.Ime AS KlientIme, Potrebitel.Familia AS KlientFamilia, " +
-                                 "Knigi.Ime AS KnigaIme, Zaemaniq.Zaeta " +
+                                 "Potrebitel.PotrebitelID, Potrebitel.Ime AS KlientIme, Potrebitel.Familia AS KlientFamilia, " +
+                                 "Knigi.KnigaID, Knigi.Ime AS KnigaIme, Zaemaniq.Zaeta " +
                                  "FROM Zaemaniq " +
                                  "JOIN Potrebitel ON Zaemaniq.KlientID = Potrebitel.PotrebitelID " +
                                  "JOIN Knigi ON Zaemaniq.KnigaID = Knigi.KnigaID " +
-                                 "WHERE Zaemaniq.PoruchkaID ="+PoruchkaID;
+                                 "WHERE Zaemaniq.PoruchkaID = " + PoruchkaID;
                 SqlCommand sqlCommand = new SqlCommand(command, con);
                 SqlDataReader reader = sqlCommand.ExecuteReader();
                 while (reader.Read())
@@ -271,15 +334,19 @@ namespace WindowsFormsApp1
                     string formattedNachalnaData = nachalnaData.ToString("dd/MM/yyyy");
                     DateTime krainaData = Convert.ToDateTime(reader["KrainaData"]);
                     string formattedKrainaData = krainaData.ToString("dd/MM/yyyy");
+                    string potrebitelID = reader["PotrebitelID"].ToString();
                     string klientIme = reader["KlientIme"].ToString();
                     string klientFamilia = reader["KlientFamilia"].ToString();
+                    string knigaID = reader["KnigaID"].ToString();
                     string knigaIme = reader["KnigaIme"].ToString();
                     bool zaeta = Convert.ToBoolean(reader["Zaeta"]);
 
                     listBoxInfo.Items.Add("ПоръчкаID: " + poruchkaID);
                     listBoxInfo.Items.Add("Начална дата: " + formattedNachalnaData);
                     listBoxInfo.Items.Add("Краина дата: " + formattedKrainaData);
-                    listBoxInfo.Items.Add("Читател: " + klientIme + " " + klientFamilia);
+                    listBoxInfo.Items.Add("ЧитателID: " + potrebitelID);
+                    listBoxInfo.Items.Add("Читател: " + klientIme.TrimEnd() + " " + klientFamilia.Trim());
+                    listBoxInfo.Items.Add("КнигаID: " + knigaID);
                     listBoxInfo.Items.Add("Книга: " + knigaIme);
 
                     if (zaeta)
@@ -295,7 +362,6 @@ namespace WindowsFormsApp1
             }
             con.Close();
         }
-
         private void DobavqneToolStripMenuItem_Click(object sender, EventArgs e)
         {
             FormDobavqne formDobavqne = new FormDobavqne();
@@ -346,7 +412,7 @@ namespace WindowsFormsApp1
             int index = Convert.ToInt32(item);
             SqlConnection con = new SqlConnection(connectionString);
             con.Open();
-            string command="SELECT COUNT(PotrebitelID) FROM Zaemaniq WHERE KlientID="+index;
+            string command="SELECT COUNT(KlientID) FROM Zaemaniq WHERE KlientID="+index;
             SqlCommand sqlCommand = new SqlCommand(command, con);
             int numberOfZaemaniq = Convert.ToInt32(sqlCommand.ExecuteScalar());
             if (numberOfZaemaniq == 0)
