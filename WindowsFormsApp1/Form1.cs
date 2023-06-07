@@ -33,7 +33,6 @@ namespace WindowsFormsApp1
             string currentDirectory = Directory.GetCurrentDirectory();
             string projectPath = new DirectoryInfo(currentDirectory).Parent.Parent.FullName;
             filePath = Path.Combine(projectPath, fileName);
-            MessageBox.Show(filePath);
         }
         private void GetConnection()
         {
