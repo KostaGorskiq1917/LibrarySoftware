@@ -16,12 +16,24 @@ namespace WindowsFormsApp1
     public partial class Form1 : Form
     {
         string connectionString;
-        string filePath = "D:\\Game dev\\библиотека село\\WindowsFormsApp1\\Connection.txt";
+        string fileName;
+        string filePath;
+        //string filePath = "D:\\Game dev\\библиотека село\\WindowsFormsApp1\\Connection.txt";
         public Form1()
         {
             InitializeComponent();
+            SetUpPath();
             this.FormClosing += MainForm_FormClosing;
             GetConnection();
+
+        }
+        private void SetUpPath()
+        {
+            fileName = "Connection.txt";
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string projectPath = new DirectoryInfo(currentDirectory).Parent.Parent.FullName;
+            filePath = Path.Combine(projectPath, fileName);
+            MessageBox.Show(filePath);
         }
         private void GetConnection()
         {
